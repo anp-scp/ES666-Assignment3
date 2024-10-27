@@ -123,6 +123,8 @@ class PanaromaStitcher():
                 max_inliers = num_inliers
                 # best_homography = self.estimate_candidate_homography(kp1[:, inliers_idx], kp2[:, inliers_idx])
                 best_homography = H_i
+        ## NOTE: Re-estimating homography with most inliers did not gave better results. Hence, just kept the most popular homography
+        
         # Unnormalize homography matrix
         best_homography = np.linalg.inv(t_2) @ best_homography @ t_1
         best_homography = best_homography / best_homography[2,2]
