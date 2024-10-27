@@ -311,6 +311,7 @@ class PanaromaStitcher():
         ####  Your Implementation here
         #### you can use functions, class_methods, whatever!! Examples are illustrated below. Remove them and implement yours.
         #### Just make sure to return final stitched image and all Homography matrices from here
+        homography_matrix_list =[]
 
         ## Estimate focal length for cylindrical warping.
         focal_lengths = [self.get_focal_in_pixels(i) for i in all_images]
@@ -340,6 +341,7 @@ class PanaromaStitcher():
 
         homography = self.get_homography_with_ransac(img1, img2)
         stitched_image = self.stitch_image(img1, img2, homography)
+        homography_matrix_list.append(homography)
 
         while True:
             if len(left) == 0 or len(right) == 0:
@@ -350,16 +352,18 @@ class PanaromaStitcher():
             right = right[1:]
             homography = self.get_homography_with_ransac(img_left, stitched_image)
             stitched_image = self.stitch_image(img_left, stitched_image, homography)
+            homography_matrix_list.append(homography)
 
             homography = self.get_homography_with_ransac(img_right, stitched_image)
             stitched_image = self.stitch_image(img_right, stitched_image, homography)
+            homography_matrix_list.append(homography)
         
         if len(right) > 0:
             homography = self.get_homography_with_ransac(right[0], stitched_image)
             stitched_image = self.stitch_image(right[0], stitched_image, homography)
+            homography_matrix_list.append(homography)
         
         # Collect all homographies calculated for pair of images and return
-        homography_matrix_list =[]
         # Return Final panaroma
         stitched_image = stitched_image
         #####
