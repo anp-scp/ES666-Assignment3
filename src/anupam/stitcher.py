@@ -260,6 +260,7 @@ class PanaromaStitcher():
         image_width_pixels= image.size[0]
         del image
 
+        # Source: https://answers.opencv.org/question/17076/conversion-focal-distance-from-mm-to-pixels/
         focal_pixels = (focal_mm * image_width_pixels) / sensor_width_mm
         return focal_pixels
         
@@ -293,16 +294,18 @@ class PanaromaStitcher():
         # pixel coordinates
         y_i, x_i = np.indices((h_,w_))
         X = np.stack([x_i,y_i,np.ones_like(x_i)],axis=-1).reshape(h_*w_,3)
+        # Remove the camera properties from the image by multiplying with K^{-1}.
         Kinv = np.linalg.inv(K) 
-        X = Kinv.dot(X.T).T # normalized coords
+        X = (Kinv @ X.T).T # normalized coords
         # calculate cylindrical coords (sin\theta, h, cos\theta)
         A = np.stack([np.sin(X[:,0]),X[:,1],np.cos(X[:,0])],axis=-1).reshape(w_*h_,3)
-        B = K.dot(A.T).T # project back to image-pixels plane
+        B = (K @ A.T).T # project back to image-pixels plane  by apllying camera intrinsic matrix 
         # back from homog coords
         B = B[:,:-1] / B[:,[-1]]
         # make sure warp coords only within image bounds
         B[(B[:,0] < 0) | (B[:,0] >= w_) | (B[:,1] < 0) | (B[:,1] >= h_)] = -1
         B = B.reshape(h_,w_,-1)
+        # map img to new coordinates. Used remap 
         return cv2.remap(img, B[:,:,0].astype(np.float32), B[:,:,1].astype(np.float32), cv2.INTER_AREA, borderMode=cv2.BORDER_CONSTANT)
 
     
