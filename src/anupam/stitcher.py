@@ -231,7 +231,10 @@ class PanaromaStitcher():
     def get_focal_in_pixels(self, img_path: str) -> float:
         """Estimate focal length from EXIF data and camera model. Focal length and model is
         reteived from EXIF and sensor size from online DB (https://www.digicamdb.com/) for 
-        corresponding model. This is needed for cylidrical warping. 
+        corresponding model. This is needed for cylidrical warping. If image EXIF data could not be
+        accessed, it would assume FOV of 55 degrees.
+        Source of formula for estimating focal length in pixels: 
+        Link: https://answers.opencv.org/question/17076/conversion-focal-distance-from-mm-to-pixels/
 
         Parameters
         ----------
@@ -254,16 +257,21 @@ class PanaromaStitcher():
         }
 
         image = Image.open(img_path)
-        focal_mm = image._getexif()[37386]
-        model = image._getexif()[272]
-        sensor_width_mm = sensor_width_map[model]
-        image_width_pixels= image.size[0]
-        del image
+        try:
+            focal_mm = image._getexif()[37386]
+            model = image._getexif()[272]
+            sensor_width_mm = sensor_width_map[model]
+            image_width_pixels= image.size[0]
+            del image
 
-        # Source: https://answers.opencv.org/question/17076/conversion-focal-distance-from-mm-to-pixels/
-        focal_pixels = (focal_mm * image_width_pixels) / sensor_width_mm
-        return focal_pixels
+            focal_pixels = (focal_mm * image_width_pixels) / sensor_width_mm
+            return focal_pixels
         
+        except KeyError:
+            print("could not find sensor width/ focal length (mm) in metata data to estimate focal length. Assuming FOV of 55 degrees")
+            FOV = 55 #assuming FOV= 55 degree
+            return (image.size[0] * 0.5) / np.tan(FOV * 0.5 * np.pi/180)
+
     
     def cylindrical_warp(self, img: np.array, f: float) -> np.array:
         """This function returns the cylindrical warp for a given image and focal length.
